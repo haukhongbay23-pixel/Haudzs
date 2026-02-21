@@ -1,0 +1,187 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- [BẢO MẬT] Mã hóa Key: CHII_HAUU_2026
+local obfuscated_key = {67, 72, 73, 73, 95, 72, 65, 85, 85, 95, 50, 48, 50, 54} 
+local function get_key(bytes)
+    local k = ""
+    for i = 1, #bytes do k = k .. string.char(bytes[i]) end
+    return k
+end
+
+local CorrectKey = get_key(obfuscated_key)
+local HasKey = false
+_G.AutoFarmChest = false
+_G.IsTeleporting = false
+
+-- 1. Kiểm tra Sea hiện tại
+local function GetCurrentSea()
+    local placeId = game.PlaceId
+    if placeId == 2753915549 then return "Sea 1"
+    elseif placeId == 4442245419 then return "Sea 2"
+    elseif placeId == 7449925069 then return "Sea 3"
+    else return "Unknown" end
+end
+
+local CurrentSea = GetCurrentSea()
+
+local Window = Rayfield:CreateWindow({
+   Name = "🏴‍☠️ Blox Fruits: Chii Hauu HUB",
+   LoadingTitle = "Hệ Thống Dịch Chuyển Fix Map",
+   LoadingSubtitle = "by Chii Hauu | " .. CurrentSea,
+   ConfigurationSaving = { Enabled = false },
+   KeySystem = false, 
+   Keybind = "LeftControl"
+})
+
+-- 2. Thêm Hình Nền
+local function AddBackground()
+    task.spawn(function()
+        local coreGui = game:GetService("CoreGui")
+        local mainFrame = nil
+        repeat
+            mainFrame = coreGui:FindFirstChild("Rayfield") and coreGui.Rayfield:FindFirstChild("Main")
+            task.wait(0.5)
+        until mainFrame
+
+        if mainFrame and not mainFrame:FindFirstChild("ChiiHauuBackground") then
+            local BG = Instance.new("ImageLabel")
+            BG.Name = "ChiiHauuBackground"
+            BG.Parent = mainFrame
+            BG.BackgroundTransparency = 1.000
+            BG.Position = UDim2.new(0, 0, 0, 0)
+            BG.Size = UDim2.new(1, 0, 1, 0)
+            BG.Image = "rbxassetid://88038667117291" 
+            BG.ImageTransparency = 0.25 
+            BG.ZIndex = 0 
+            BG.ScaleType = Enum.ScaleType.Stretch
+            
+            local UICorner = Instance.new("UICorner")
+            UICorner.CornerRadius = UDim.new(0, 10)
+            UICorner.Parent = BG
+        end
+    end)
+end
+AddBackground()
+
+-- 3. Tọa độ các đảo
+local Islands = {
+    ["Sea 1"] = {
+        ["Đảo Khởi Đầu"] = CFrame.new(-483, 20, 4291),
+        ["Đảo Khỉ (Jungle)"] = CFrame.new(-1246, 12, 4747),
+        ["Làng Hải Tặc"] = CFrame.new(-1147, 14, 3865),
+        ["Pháo Đài Hải Quân"] = CFrame.new(-4706, 21, 4261),
+        ["Nhà Tù (Prison)"] = CFrame.new(4862, 5, 735),
+        ["Skypiea"] = CFrame.new(-4869, 733, -1512)
+    },
+    ["Sea 2"] = {
+        ["Quán Cafe"] = CFrame.new(-380, 77, 255),
+        ["Vương Quốc Rose"] = CFrame.new(-457, 72, 281),
+        ["Green Bit"] = CFrame.new(-2466, 73, -3051),
+        ["Zombies Island"] = CFrame.new(-5622, 15, -451)
+    },
+    ["Sea 3"] = {
+        ["Dinh Thự (Mansion)"] = CFrame.new(-12463, 374, -7551),
+        ["Lâu Đài Trên Biển"] = CFrame.new(-5018, 314, -3030),
+        ["Đảo Hydra"] = CFrame.new(5222, 601, 288),
+        ["Đảo Rùa"] = CFrame.new(-13233, 517, -7533)
+    }
+}
+
+-- 4. Kiểm tra đồ quý
+function checkRareItems()
+    local player = game.Players.LocalPlayer
+    local rareItems = {"God's Chalice", "Fist of Darkness", "Library Key", "Water Key"}
+    for _, itemName in pairs(rareItems) do
+        if player.Backpack:FindFirstChild(itemName) or (player.Character and player.Character:FindFirstChild(itemName)) then
+            return true
+        end
+    end
+    return false
+end
+
+-- 5. Logic Farm Rương
+function doFarmChest()
+    task.spawn(function()
+        while _G.AutoFarmChest do
+            if checkRareItems() then 
+                _G.AutoFarmChest = false
+                Rayfield:Notify({Title = "🎁 ĐÃ CÓ ĐỒ QUÝ!", Content = "Dừng farm để bảo vệ vật phẩm!", Duration = 10})
+                break 
+            end
+
+            local char = game.Players.LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if root then
+                local targetChest = nil
+                local minDist = math.huge
+                
+                for _, v in pairs(game.Workspace:GetChildren()) do
+                    if v.Name:find("Chest") and v:IsA("BasePart") then
+                        local dist = (v.Position - root.Position).Magnitude
+                        if dist < minDist then
+                            minDist = dist
+                            targetChest = v
+                        end
+                    end
+                end
+
+                if targetChest then
+                    _G.IsTeleporting = true
+                    root.CFrame = targetChest.CFrame * CFrame.new(0, 2, 0)
+                    task.wait(0.2)
+                    _G.IsTeleporting = false
+                end
+            end
+            task.wait(0.1)
+        end
+    end)
+end
+
+-- 6. Noclip
+game:GetService("RunService").Stepped:Connect(function()
+    local char = game.Players.LocalPlayer.Character
+    if char and (_G.AutoFarmChest or _G.IsTeleporting) then
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") and v.CanCollide == true then 
+                v.CanCollide = false 
+            end
+        end
+    end
+end)
+
+-- TABS
+local KeyTab = Window:CreateTab("🔑 Key")
+local MainTab = Window:CreateTab("💰 Farm Rương")
+local TeleportTab = Window:CreateTab("🏝️ Dịch Chuyển ("..CurrentSea..")")
+
+KeyTab:CreateInput({
+   Name = "Nhập Key",
+   PlaceholderText = "Nhập key tại đây...",
+   Callback = function(Text)
+      if Text == CorrectKey then 
+         HasKey = true 
+         Rayfield:Notify({Title = "THÀNH CÔNG", Content = "Chào Chii Hauu!", Duration = 5})
+      else
+         Rayfield:Notify({Title = "SAI KEY", Content = "Vui lòng kiểm tra lại!", Duration = 5})
+      end
+   end,
+})
+
+MainTab:CreateToggle({
+   Name = "Bật Auto Farm Chest",
+   CurrentValue = false,
+   Callback = function(Value)
+      if HasKey then
+         _G.AutoFarmChest = Value
+         if Value then doFarmChest() end
+      else
+         Rayfield:Notify({Title = "LỖI", Content = "Hãy nhập Key!", Duration = 5})
+      end
+   end,
+})
+
+-- Hiển thị đảo (PHẦN ĐÃ FIX)
+local SeaData = Islands[CurrentSea]
+if SeaData then
+    for Name, CF in
+    
